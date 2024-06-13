@@ -9,20 +9,13 @@ Use your standard plugin manager (however there is very little here so far so no
 - [idb](https://github.com/facebook/idb) (needs Python 3)
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim/tree/master)
 
-### Plugin structure
+## Setup
+```
+require("nvim-idb").setup()
+```
 
+## Usage
 ```
-.
-├── lua
-│   ├── plugin_name
-│   │   └── module.lua
-│   └── plugin_name.lua
-├── Makefile
-├── plugin
-│   └── plugin_name.lua
-├── README.md
-├── tests
-│   ├── minimal_init.lua
-│   └── plugin_name
-│       └── plugin_name_spec.lua
+:lua require('telescope').extensions["nvim-idb"].get_elements()
 ```
+This will probably not work correctly! But if you want to try it then go ahead.nvim
