@@ -19,16 +19,14 @@ local createPreview = function(bufnr, entry)
     end
 end
 
-local items = {}
-
 local get_tappable_items = function(opts)
-  items = idb.getInteractableElements()
+  local items = idb.getInteractableElements()
   local displayer = require("telescope.pickers.entry_display").create {
         separator = " ",
         items = {
+            { width = 30 },
             { width = 20 },
-            { width = 20 },
-            { width = 20 },
+            { width = 30 },
             { width = 20 },
         },
     }
@@ -56,19 +54,21 @@ local get_tappable_items = function(opts)
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
         local selection = action_state.get_selected_entry()
-        idb.tapOnElement(selection.value)
-        local current_picker = action_state.get_current_picker(prompt_bufnr)
-        current_picker:refresh(finders.new_table({
-                results = idb.getInteractableElements(),
-                entry_maker = function(entry)
-                    -- Customize how entries are displayed
-                    return {
-                      value = entry,
-                      display = make_display,
-                      ordinal = entry.AXLabel
-                    }
-                end,
-            }), {})
+        if selection ~= nil then
+          idb.tapOnElement(selection.value)
+          local current_picker = action_state.get_current_picker(prompt_bufnr)
+          current_picker:refresh(finders.new_table({
+                  results = idb.getInteractableElements(),
+                  entry_maker = function(entry)
+                      -- Customize how entries are displayed
+                      return {
+                        value = entry,
+                        display = make_display,
+                        ordinal = entry.AXLabel
+                      }
+                  end,
+              }), {})
+        end
       end)
       return true
     end
