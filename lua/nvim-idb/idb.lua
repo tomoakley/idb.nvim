@@ -87,4 +87,10 @@ function idb.tapOnElement(element)
   end
 end
 
+function idb.restartCurrentApp()
+  local bundleId = run_shell_command("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'")
+  run_shell_command("idb terminate "..bundleId)
+  run_shell_command("idb launch "..bundleId)
+end
+
 return idb

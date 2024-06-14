@@ -1,1 +1,2 @@
---vim.api.nvim_create_user_command("MyFirstFunction", require("plugin_name").hello, {})
+vim.api.nvim_create_user_command("IDBRestartCurrentApp", require("nvim-idb.idb").restartCurrentApp, {})
+
