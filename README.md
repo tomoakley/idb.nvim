@@ -19,3 +19,10 @@ require("nvim-idb").setup()
 :lua require('telescope').extensions["nvim-idb"].get_elements()
 ```
 This will probably not work correctly! But if you want to try it then go ahead.nvim
+
+`:IDBStartSession` - This is a _very_ experimental mode to start an IDB "session". This will "take over" your vim session; it will remap various keys to manipulate the simulator:
+- `j` - scroll down on simulator
+- `k` - scroll up on simulator
+- `f` - show element picker in Telescope
+- `r` - restart app
+- `<esc>` - Quit this mode and return mappings to vim

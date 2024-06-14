@@ -93,4 +93,30 @@ function idb.restartCurrentApp()
   run_shell_command("idb launch "..bundleId)
 end
 
+local function scrollDown()
+  print('IDB: Scrolling down')
+  run_shell_command('idb ui swipe --duration 0.25 300 800 300 700')
+end
+local function scrollUp()
+  print('IDB: Scrolling up')
+  run_shell_command('idb ui swipe --duration 0.25 300 700 300 800')
+end
+
+local function disableKeyMappings()
+  print("Disabling IDB mappings, returning to vim-mode")
+  vim.api.nvim_del_keymap('n', 'j')
+  vim.api.nvim_del_keymap('n', 'k')
+  vim.api.nvim_del_keymap('n', 'f')
+  vim.api.nvim_del_keymap('n', '<esc>')
+end
+
+function idb.startSession()
+  print('starting idb scroll session')
+  vim.keymap.set('n', 'j', scrollDown, {noremap=true})
+  vim.keymap.set('n', 'k', scrollUp, {noremap=true})
+  vim.keymap.set('n', 'f', require('telescope').extensions["nvim-idb"].get_elements, {noremap=true})
+  vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
+  vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
+end
+
 return idb
