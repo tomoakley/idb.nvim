@@ -44,15 +44,21 @@ function idb.tapOnElement(element)
     local yCoord = math.ceil(element.frame.y)
     run_shell_command("idb ui tap "..xCoord.." "..yCoord)
     if element.type == "TextField" then
+      print(element.AXValue)
       local input = Input({
-        position = "50%",
+        relative = "editor",
+        position = {
+          row = "50%",
+          col = "50%"
+        },
+        zindex = 100,
         size = {
-          width = 20,
+          width = 40,
         },
         border = {
           style = "single",
           text = {
-            top = "[Howdy?]",
+            top = element.AXLabel,
             top_align = "center",
           },
         },
@@ -61,20 +67,23 @@ function idb.tapOnElement(element)
         },
       }, {
         prompt = "> ",
-        default_value = "Hello",
-        on_close = function()
-          print("Input Closed!")
-        end,
+        default_value = element.AXValue, -- doesn't always show, or slow to show, existing text in prompt. Why?
         on_submit = function(value)
-          run_shell_command("idb ui text "..value)
+          -- todo: manipulate text.
+            -- if the entered text deletes values in AXValue, we need to use `idb ui key 42` (backspace key code)
+          -- eg if entered text appends to AXValue, we need to get the appended text and only enter that
+          if value ~= element.AXValue then
+            run_shell_command("idb ui text '"..value.."'")
+          end
         end,
       })
       input:mount()
       input:on(event.BufLeave, function()
         input:unmount()
       end)
-
+      return false
     end
+    return true
   end
 end
 
