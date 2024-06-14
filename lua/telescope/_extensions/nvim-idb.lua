@@ -58,17 +58,31 @@ local get_tappable_items = function(opts)
           idb.tapOnElement(selection.value)
           local current_picker = action_state.get_current_picker(prompt_bufnr)
           current_picker:refresh(finders.new_table({
-                  results = idb.getInteractableElements(),
-                  entry_maker = function(entry)
-                      -- Customize how entries are displayed
-                      return {
-                        value = entry,
-                        display = make_display,
-                        ordinal = entry.AXLabel
-                      }
-                  end,
-              }), {})
+              results = idb.getInteractableElements(),
+              entry_maker = function(entry)
+                  -- Customize how entries are displayed
+                  return {
+                    value = entry,
+                    display = make_display,
+                    ordinal = entry.AXLabel
+                  }
+              end,
+          }), {})
         end
+      end)
+      map('i', '<c-r>', function()
+          local current_picker = action_state.get_current_picker(prompt_bufnr)
+          current_picker:refresh(finders.new_table({
+              results = idb.getInteractableElements(),
+              entry_maker = function(entry)
+                  -- Customize how entries are displayed
+                  return {
+                    value = entry,
+                    display = make_display,
+                    ordinal = entry.AXLabel
+                  }
+              end,
+          }), {})
       end)
       return true
     end
