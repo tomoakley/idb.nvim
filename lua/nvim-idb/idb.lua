@@ -95,11 +95,11 @@ end
 
 local function scrollDown()
   print('IDB: Scrolling down')
-  run_shell_command('idb ui swipe --duration 0.25 300 800 300 700')
+  run_shell_command('idb ui swipe --duration 0.1 300 800 300 700')
 end
 local function scrollUp()
   print('IDB: Scrolling up')
-  run_shell_command('idb ui swipe --duration 0.25 300 700 300 800')
+  run_shell_command('idb ui swipe --duration 0.1 300 700 300 800')
 end
 
 local function disableKeyMappings()
@@ -118,5 +118,15 @@ function idb.startSession()
   vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
   vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
 end
+
+-- debounce scroll calls
+-- make run_shell_command async
+  -- call the getInteractableElements when IDBSessionStart is called so when f is pressed there is some data (and then refresh)
+-- ~`a` and `i` calls enter insert mode (cancel mappings in normal mode too?)~ done!
+-- gg and G to top and bottom
+-- press period to repeat last command (scroll, button press, etc)!
+-- u to swipe back
+-- bigger motion events (e.g 10j)
+-- record and play macros?!
 
 return idb
