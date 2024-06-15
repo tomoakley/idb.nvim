@@ -1,4 +1,4 @@
-#hellohellohellohello idb.nvim
+#idb.nvim
 I am attempting to write a Neovim plugin that can use [idb](https://fbidb.io/), a tool to interact with iOS simulators (mainly for automated testing) in a scriptable manor. I want to be able to show a telescope.nvim search box with all the interactable elements on the iOS simulator screen, so I can avoid using the mouse when interacting with the simulator.
 
 ## Install
@@ -33,3 +33,4 @@ I think this could be pretty powerful. I have some ideas on other mappings or fe
 - [ ] `u` to swipe back on the simulator (or other actions to undo your last action)
 - [ ] `10j` - bigger motion events
 - [ ] - record and play macros (?!) - record a sequence of events in the Simulator and then play it back later (persisted across IDB sessions of course!)
+- [ ] `/` - search for item on screen and scroll to it

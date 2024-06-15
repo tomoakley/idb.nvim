@@ -20,7 +20,6 @@ local createPreview = function(bufnr, entry)
 end
 
 local get_tappable_items = function(opts)
-  local items = idb.getInteractableElements()
   local displayer = require("telescope.pickers.entry_display").create {
         separator = " ",
         items = {
@@ -38,10 +37,25 @@ local get_tappable_items = function(opts)
       { entry.value.AXUniqueId or "Not set" }
     }
   end
+  local currentPicker
+  local refreshTableWithResults = function (data)
+      currentPicker:refresh(finders.new_table({
+          results = data,
+          entry_maker = function(entry)
+              -- Customize how entries are displayed
+              return {
+                value = entry,
+                display = make_display,
+                ordinal = entry.AXLabel
+              }
+          end
+    }))
+  end
+  local cachedItems = idb.getInteractableElements(refreshTableWithResults)
   pickers.new(opts or {}, {
     prompt_title = "Interactable Elements",
     finder = finders.new_table {
-      results = items,
+      results = cachedItems,
       entry_maker = function(entry)
         return {
           value = entry,
@@ -52,6 +66,8 @@ local get_tappable_items = function(opts)
     },
     sorter = conf.generic_sorter(opts),
     attach_mappings = function(prompt_bufnr, map)
+        local current_picker = action_state.get_current_picker(prompt_bufnr)
+      currentPicker = current_picker
       actions.select_default:replace(function()
         local selection = action_state.get_selected_entry()
         if selection ~= nil then
