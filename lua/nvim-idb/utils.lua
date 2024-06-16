@@ -2,10 +2,10 @@ local plenary = require('plenary')
 
 local M = {}
 
-local DEBOUNCE_DELAY = 600 -- Adjust the delay as needed
 if not table.unpack then
     table.unpack = unpack
 end
+
 local function td_validate(fn, ms)
 	vim.validate{
 		fn = { fn, 'f' },
@@ -19,7 +19,7 @@ local function td_validate(fn, ms)
 	}
 end
 
-function M.debounce_trailing(fn, ms, first)
+function M.debounce_trailing(fn, ms)
   td_validate(fn, ms)
   local timer = vim.loop.new_timer()
   local timeoutId

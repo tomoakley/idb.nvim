@@ -5,11 +5,30 @@ local json = require"nvim-idb.json"
 local utils = require"nvim-idb.utils"
 local idb = {}
 
+local interactableCommands = {"ui tap", "ui text", "ui swipe"}
 local elementsCache = {}
+local lastAction
 
+local runCommand = function(command, callback)
+  utils.run_shell_command_async(command, function(data)
+    local lastActionIsInteractable = false
+    if command and lastAction ~= command then
+      for _, cmd in pairs(interactableCommands) do
+        lastActionIsInteractable = string.match(command, cmd)
+        if lastActionIsInteractable then
+          lastAction = command
+          break
+        end
+      end
+      if callback then
+        callback(data)
+      end
+    end
+  end)
+end
 
 function idb.getInteractableElements(callback)
-  utils.run_shell_command_async("idb ui describe-all", function(data)
+  runCommand("idb ui describe-all", function(data)
     local elementTable = json.parse(data[1])
     local interactableElementTypes = {"Link", "TextField", "Button"}
     local filteredElements = utils.filter(elementTable, function(key, value, table)
@@ -34,7 +53,7 @@ function idb.tapOnElement(element, callback)
   if element.frame ~= nil then
     local xCoord = math.ceil(element.frame.x)
     local yCoord = math.ceil(element.frame.y)
-    utils.run_shell_command_async("idb ui tap "..xCoord.." "..yCoord, callback)
+    runCommand("idb ui tap "..xCoord.." "..yCoord, callback)
     if element.type == "TextField" then
       local input = Input({
         relative = "editor",
@@ -64,7 +83,7 @@ function idb.tapOnElement(element, callback)
             -- if the entered text deletes values in AXValue, we need to use `idb ui key 42` (backspace key code)
           -- eg if entered text appends to AXValue, we need to get the appended text and only enter that
           if value ~= element.AXValue then
-            utils.run_shell_command_async("idb ui text '"..value.."'")
+            runCommand("idb ui text '"..value.."'")
           end
         end,
       })
@@ -110,10 +129,9 @@ function idb.tapOnPoint()
         if not num2 then
           num1, num2 = value:match(patternWithSpace)
         end
-        print(num1, num2)
         value = num1.." "..num2
       end
-      utils.run_shell_command_async("idb ui tap "..value)
+      runCommand("idb ui tap "..value)
     end,
   })
   input:mount()
@@ -122,24 +140,38 @@ function idb.tapOnPoint()
   end)
 end
 
+function idb.setLastAction(command)
+  lastAction = command
+end
+
+function idb.getLastAction()
+  return lastAction
+end
+
+function idb.repeatLastAction()
+  if lastAction then
+    utils.run_shell_command_async(lastAction)
+  end
+end
+
 function idb.restartCurrentApp()
-  utils.run_shell_command_async("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'", function(data)
+  runCommand("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'", function(data)
     local bundleId = data[1]
-    utils.run_shell_command_async("idb terminate "..bundleId, function()
-      utils.run_shell_command_async("idb launch "..bundleId)
+    runCommand("idb terminate "..bundleId, function()
+      runCommand("idb launch "..bundleId)
     end)
   end)
 end
 
 local function scrollDown()
   utils.debounce_trailing(function()
-    utils.run_shell_command_async('idb ui swipe --duration 0.1 300 800 300 700')
+    runCommand('idb ui swipe --duration 0.1 300 800 300 700')
   end, 500)()
 end
 local function scrollUp()
   utils.debounce_trailing(function()
     print("Scrolling up")
-    utils.run_shell_command_async('idb ui swipe --duration 0.1 300 700 300 800')
+    runCommand('idb ui swipe --duration 0.1 300 700 300 800')
   end, 500)()
 end
 
@@ -159,6 +191,7 @@ function idb.startSession()
   vim.keymap.set('n', 'f', require('telescope').extensions["nvim-idb"].get_elements, {noremap=true})
   vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
   vim.keymap.set('n', 't', idb.tapOnPoint, {noremap = true})
+  vim.keymap.set('n', '.', idb.repeatLastAction, {noremap = true})
   vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
 end
 

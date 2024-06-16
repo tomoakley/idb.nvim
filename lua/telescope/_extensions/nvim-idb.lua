@@ -39,7 +39,6 @@ local get_tappable_items = function(opts)
   end
   local currentPicker
   local refreshTableWithResults = function (data)
-    print("refreshing data...")
       currentPicker:refresh(finders.new_table({
           results = data,
           entry_maker = function(entry)
