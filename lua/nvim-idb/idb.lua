@@ -78,6 +78,50 @@ function idb.tapOnElement(element, callback)
   end
 end
 
+function idb.tapOnPoint()
+  local input = Input({
+    relative = "editor",
+    position = {
+      row = "50%",
+      col = "50%"
+    },
+    zindex = 100,
+    size = {
+      width = 40,
+    },
+    border = {
+      style = "single",
+      text = {
+        top = "X, Y",
+        top_align = "center",
+      },
+    },
+    win_options = {
+      winhighlight = "Normal:Normal,FloatBorder:Normal",
+    },
+  }, {
+    prompt = "> ",
+    on_submit = function(value)
+      if value:find(",") then
+        local patternWithSpace = "(%d+), (%d+)"
+        local patternNoSpace = "(%d+),(%d+)"
+
+        local num1, num2 = value:match(patternNoSpace)
+        if not num2 then
+          num1, num2 = value:match(patternWithSpace)
+        end
+        print(num1, num2)
+        value = num1.." "..num2
+      end
+      utils.run_shell_command_async("idb ui tap "..value)
+    end,
+  })
+  input:mount()
+  input:on(event.BufLeave, function()
+    input:unmount()
+  end)
+end
+
 function idb.restartCurrentApp()
   utils.run_shell_command_async("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'", function(data)
     local bundleId = data[1]
@@ -114,6 +158,7 @@ function idb.startSession()
   vim.keymap.set('n', 'k', scrollUp, {noremap=true})
   vim.keymap.set('n', 'f', require('telescope').extensions["nvim-idb"].get_elements, {noremap=true})
   vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
+  vim.keymap.set('n', 't', idb.tapOnPoint, {noremap = true})
   vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
 end
 

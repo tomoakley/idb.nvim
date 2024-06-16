@@ -24,6 +24,7 @@ This will probably not work correctly! But if you want to try it then go ahead.n
 - `j` - scroll down on simulator
 - `k` - scroll up on simulator
 - `f` - show element picker in Telescope
+- `t` - tap on specifc point. Pass in `x y` with a space or a comma. E.g `650,2600`, `650, 2600` or `650 2600` should all work
 - `r` - restart app
 - `<esc>` - Quit this mode and return mappings to vim
 
