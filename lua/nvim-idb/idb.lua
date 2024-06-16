@@ -165,6 +165,7 @@ end
 
 local function scrollDown()
   utils.debounce_trailing(function()
+    print("Scrolling down")
     runCommand('idb ui swipe --duration 0.1 300 800 300 700')
   end, 500)()
 end
@@ -173,6 +174,10 @@ local function scrollUp()
     print("Scrolling up")
     runCommand('idb ui swipe --duration 0.1 300 700 300 800')
   end, 500)()
+end
+
+local function swipeRight()
+  runCommand("idb ui swipe --duration 0.1 0 300 500 300")
 end
 
 local function disableKeyMappings()
@@ -192,6 +197,7 @@ function idb.startSession()
   vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
   vim.keymap.set('n', 't', idb.tapOnPoint, {noremap = true})
   vim.keymap.set('n', '.', idb.repeatLastAction, {noremap = true})
+  vim.keymap.set('n', 'H', swipeRight, {noremap = true})
   vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
 end
 

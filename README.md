@@ -26,13 +26,12 @@ This will probably not work correctly! But if you want to try it then go ahead.n
 - `f` - show element picker in Telescope
 - `t` - tap on specifc point. Pass in `x y` with a space or a comma. E.g `650,2600`, `650, 2600` or `650 2600` should all work
 - `.` - repeat last interacterable command (i.e something that produces a UI output on the screen)
+- `H` - swipe back on the simulator
 - `r` - restart app
 - `<esc>` - Quit this mode and return mappings to vim
 
 I think this could be pretty powerful. I have some ideas on other mappings or features (most of which already exist in vim!) I could add:
 - [ ] `gg` and `G` to scroll to top/bottom of content in the simulator
-- [ ] `.` to repeat the last command
-- [ ] `u` to swipe back on the simulator (or other actions to undo your last action)
 - [ ] `10j` - bigger motion events
 - [ ] - record and play macros (?!) - record a sequence of events in the Simulator and then play it back later (persisted across IDB sessions of course!)
 - [ ] `/` - search for item on screen and scroll to it
