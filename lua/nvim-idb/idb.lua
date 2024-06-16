@@ -30,13 +30,12 @@ function idb.getInteractableElements(callback)
   return elementsCache
 end
 
-function idb.tapOnElement(element)
+function idb.tapOnElement(element, callback)
   if element.frame ~= nil then
     local xCoord = math.ceil(element.frame.x)
     local yCoord = math.ceil(element.frame.y)
-    utils.run_shell_command("idb ui tap "..xCoord.." "..yCoord)
+    utils.run_shell_command_async("idb ui tap "..xCoord.." "..yCoord, callback)
     if element.type == "TextField" then
-      print(element.AXValue)
       local input = Input({
         relative = "editor",
         position = {
@@ -65,7 +64,7 @@ function idb.tapOnElement(element)
             -- if the entered text deletes values in AXValue, we need to use `idb ui key 42` (backspace key code)
           -- eg if entered text appends to AXValue, we need to get the appended text and only enter that
           if value ~= element.AXValue then
-            utils.run_shell_command("idb ui text '"..value.."'")
+            utils.run_shell_command_async("idb ui text '"..value.."'")
           end
         end,
       })
@@ -80,9 +79,12 @@ function idb.tapOnElement(element)
 end
 
 function idb.restartCurrentApp()
-  local bundleId = utils.run_shell_command("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'")
-  utils.run_shell_command("idb terminate "..bundleId)
-  utils.run_shell_command("idb launch "..bundleId)
+  utils.run_shell_command_async("idb list-apps | awk -F '|' '{if ($3 == \" user \" && $5 == \" Running \") { print $1; exit } }'", function(data)
+    local bundleId = data[1]
+    utils.run_shell_command_async("idb terminate "..bundleId, function()
+      utils.run_shell_command_async("idb launch "..bundleId)
+    end)
+  end)
 end
 
 local function scrollDown()

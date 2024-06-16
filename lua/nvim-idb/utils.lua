@@ -42,15 +42,6 @@ function M.debounce_trailing(fn, ms, first)
   return wrapped_fn
 end
 
-function M.run_shell_command(command)
-  print("running shell command")
-  local handle = io.popen(command, "r") -- Open the process for reading
-  local result = handle:read("*a") -- Read all output from the process
-  handle:close() -- Close the process handle
-  print("completed shell command")
-  return result -- Return the output of the command
-end
-
 function M.run_shell_command_async(command, callback)
   plenary.job:new({
     command = "sh",

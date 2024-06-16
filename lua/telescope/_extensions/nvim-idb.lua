@@ -39,6 +39,7 @@ local get_tappable_items = function(opts)
   end
   local currentPicker
   local refreshTableWithResults = function (data)
+    print("refreshing data...")
       currentPicker:refresh(finders.new_table({
           results = data,
           entry_maker = function(entry)
@@ -71,36 +72,13 @@ local get_tappable_items = function(opts)
       actions.select_default:replace(function()
         local selection = action_state.get_selected_entry()
         if selection ~= nil then
-          local shouldRefresh = idb.tapOnElement(selection.value)
-          if shouldRefresh then
-            local current_picker = action_state.get_current_picker(prompt_bufnr)
-            current_picker:refresh(finders.new_table({
-                results = idb.getInteractableElements(),
-                entry_maker = function(entry)
-                    -- Customize how entries are displayed
-                    return {
-                      value = entry,
-                      display = make_display,
-                      ordinal = entry.AXLabel
-                    }
-                end,
-            }), {})
-          end
+          idb.tapOnElement(selection.value, function()
+            idb.getInteractableElements(refreshTableWithResults)
+          end)
         end
       end)
       map('i', '<c-r>', function()
-          local current_picker = action_state.get_current_picker(prompt_bufnr)
-          current_picker:refresh(finders.new_table({
-              results = idb.getInteractableElements(),
-              entry_maker = function(entry)
-                  -- Customize how entries are displayed
-                  return {
-                    value = entry,
-                    display = make_display,
-                    ordinal = entry.AXLabel
-                  }
-              end,
-          }), {})
+        idb.getInteractableElements(refreshTableWithResults)
       end)
       return true
     end
