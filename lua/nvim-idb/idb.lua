@@ -12,29 +12,6 @@ local elementsCache = {}
 local simulatorDetails
 local lastAction
 
-local startSessionPopup = Popup({
-  enter = false,
-  focusable = false,
-  border = {
-    padding = {
-      1, 1
-    },
-    style = "double",
-  },
-  position = {
-    col = "50%",
-    row = "20%"
-  },
-  size = {
-    width = 30,
-    height = 7,
-  },
-  zindex = 10,
-  win_options = {
-    winhighlight = "Normal:Normal,FloatBorder:Normal",
-  },
-})
-
 function Timer:init(popup_options)
   local options = vim.tbl_deep_extend("force", popup_options or {}, {
     border = "double",
@@ -286,6 +263,28 @@ local function disableKeyMappings()
 end
 
 function idb.startSession()
+  local startSessionPopup = Popup({
+    enter = false,
+    focusable = false,
+    border = {
+      padding = {
+        1, 1
+      },
+      style = "double",
+    },
+    position = {
+      col = "50%",
+      row = "20%"
+    },
+    size = {
+      width = 30,
+      height = 7,
+    },
+    zindex = 10,
+    win_options = {
+      winhighlight = "Normal:Normal,FloatBorder:Normal",
+    },
+  })
 
   getSimulatorDetailsAsync(function(data)
     local screenDimensions = data.screen_dimensions
