@@ -1,4 +1,6 @@
 local Input = require("nui.input")
+local Popup = require("nui.popup")
+local Timer = Popup:extend("Timer")
 local event = require("nui.utils.autocmd").event
 
 local json = require"nvim-idb.json"
@@ -8,6 +10,38 @@ local idb = {}
 local interactableCommands = {"ui tap", "ui text", "ui swipe"}
 local elementsCache = {}
 local lastAction
+
+function Timer:init(popup_options)
+  local options = vim.tbl_deep_extend("force", popup_options or {}, {
+    border = "double",
+    relative = "editor",
+    focusable = false,
+    position = { row = "100%", col = "100%" },
+    size = { width = 30, height = 2 },
+    zindex = 100,
+    win_options = {
+      winhighlight = "Normal:Normal,FloatBorder:SpecialChar",
+    },
+  })
+
+  Timer.super.init(self, options)
+end
+
+function Timer:countdown(time, command)
+  vim.api.nvim_buf_set_lines(self.bufnr, 0, 1, false, { "Command: "..command })
+
+  self:mount()
+
+  local remaining_time = time
+
+  vim.fn.timer_start(time, function()
+    remaining_time = remaining_time - time
+
+    if remaining_time <= 0 then
+      self:unmount()
+    end
+  end, { ["repeat"] = math.ceil(remaining_time / time) })
+end
 
 local runCommand = function(command, callback)
   utils.run_shell_command_async(command, function(data)
@@ -24,6 +58,10 @@ local runCommand = function(command, callback)
         callback(data)
       end
     end
+  end)
+  vim.schedule(function()
+    local timer = Timer()
+    timer:countdown(1500, command)
   end)
 end
 
@@ -165,13 +203,11 @@ end
 
 local function scrollDown()
   utils.debounce_trailing(function()
-    print("Scrolling down")
     runCommand('idb ui swipe --duration 0.1 300 800 300 700')
   end, 500)()
 end
 local function scrollUp()
   utils.debounce_trailing(function()
-    print("Scrolling up")
     runCommand('idb ui swipe --duration 0.1 300 700 300 800')
   end, 500)()
 end
@@ -181,7 +217,6 @@ local function swipeRight()
 end
 
 local function disableKeyMappings()
-  print("Disabling IDB mappings, returning to vim-mode")
   vim.api.nvim_del_keymap('n', 'j')
   vim.api.nvim_del_keymap('n', 'k')
   vim.api.nvim_del_keymap('n', 'f')
@@ -189,7 +224,33 @@ local function disableKeyMappings()
 end
 
 function idb.startSession()
-  print('IDB: Starting session')
+  local popup = Popup({
+    enter = false,
+    focusable = false,
+    border = {
+      padding = {
+        1, 1
+      },
+      style = "double",
+    },
+    position = {
+      col = "50%",
+      row = "20%"
+    },
+    size = {
+      width = 30,
+      height = 2,
+    },
+    zindex = 10,
+    win_options = {
+      winhighlight = "Normal:Normal,FloatBorder:Normal",
+    },
+  })
+
+  popup:mount()
+
+  vim.api.nvim_buf_set_lines(popup.bufnr, 0, 1, false, { "Now controlling iOS Simulator.", "Press <esc> to return to vim." })
+
   idb.getInteractableElements()
   vim.keymap.set('n', 'j', scrollDown, {noremap=true})
   vim.keymap.set('n', 'k', scrollUp, {noremap=true})
@@ -198,7 +259,10 @@ function idb.startSession()
   vim.keymap.set('n', 't', idb.tapOnPoint, {noremap = true})
   vim.keymap.set('n', '.', idb.repeatLastAction, {noremap = true})
   vim.keymap.set('n', 'H', swipeRight, {noremap = true})
-  vim.keymap.set('n', '<esc>', disableKeyMappings, {noremap=true})
+  vim.keymap.set('n', '<esc>', function()
+    disableKeyMappings()
+    popup:unmount()
+  end, {noremap=true})
 end
 
 -- debounce scroll calls
