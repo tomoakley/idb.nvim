@@ -9,7 +9,31 @@ local idb = {}
 
 local interactableCommands = {"ui tap", "ui text", "ui swipe"}
 local elementsCache = {}
+local simulatorDetails
 local lastAction
+
+local startSessionPopup = Popup({
+  enter = false,
+  focusable = false,
+  border = {
+    padding = {
+      1, 1
+    },
+    style = "double",
+  },
+  position = {
+    col = "50%",
+    row = "20%"
+  },
+  size = {
+    width = 30,
+    height = 7,
+  },
+  zindex = 10,
+  win_options = {
+    winhighlight = "Normal:Normal,FloatBorder:Normal",
+  },
+})
 
 function Timer:init(popup_options)
   local options = vim.tbl_deep_extend("force", popup_options or {}, {
@@ -216,62 +240,83 @@ local function swipeRight()
   runCommand("idb ui swipe --duration 0.1 0 300 500 300")
 end
 
+local function scrollToElement(element)
+  local safeAreas = {59, 34}
+--[[   local doesScreenHaveTabBar =
+-- if the bottom of the screen (screen height - 34) has multiple bottoms along the bottom on the same y axis, can probably assume that the screen has a tab bar
+--]]
+end
+
+local function getSimulatorDetailsAsync(callback)
+  if not simulatorDetails then
+    runCommand("idb describe --json", function(data)
+      simulatorDetails = json.parse(data[1])
+      callback(simulatorDetails)
+    end)
+  else
+    callback(simulatorDetails)
+  end
+end
+
+local function getSimulatorDetails()
+  if simulatorDetails then
+    return simulatorDetails
+  else
+    return nil
+  end
+end
+
+
+local mappings = {
+  { "j", scrollDown },
+  { "k", scrollUp },
+  { "t", idb.tapOnPoint },
+  { "f", nil }, -- won't let me set in loop
+  { "r", idb.restartCurrentApp },
+  { "H", swipeRight },
+  { ".", idb.repeatLastAction },
+  { "<esc>", nil } -- can't use in loop
+}
+
 local function disableKeyMappings()
-  vim.api.nvim_del_keymap('n', 'j')
-  vim.api.nvim_del_keymap('n', 'k')
-  vim.api.nvim_del_keymap('n', 'f')
-  vim.api.nvim_del_keymap('n', '<esc>')
+  for _, mappingAndCallback in pairs(mappings) do
+    local mapping = mappingAndCallback[1]
+    vim.api.nvim_del_keymap('n', mapping)
+  end
 end
 
 function idb.startSession()
-  local popup = Popup({
-    enter = false,
-    focusable = false,
-    border = {
-      padding = {
-        1, 1
-      },
-      style = "double",
-    },
-    position = {
-      col = "50%",
-      row = "20%"
-    },
-    size = {
-      width = 30,
-      height = 2,
-    },
-    zindex = 10,
-    win_options = {
-      winhighlight = "Normal:Normal,FloatBorder:Normal",
-    },
-  })
 
-  popup:mount()
-
-  vim.api.nvim_buf_set_lines(popup.bufnr, 0, 1, false, { "Now controlling iOS Simulator.", "Press <esc> to return to vim." })
-
+  getSimulatorDetailsAsync(function(data)
+    local screenDimensions = data.screen_dimensions
+    vim.schedule(function()
+      vim.api.nvim_buf_set_lines(startSessionPopup.bufnr, 0, 1, false, {
+        "Now controlling iOS Simulator.",
+        "Press <esc> to return to vim.",
+        "Details: ",
+        data.name.." ("..data.udid..")",
+        "W: "..screenDimensions.width..", H: "..screenDimensions.height,
+        "Density: "..screenDimensions.density.." ("..screenDimensions.width_points.."x"..screenDimensions.height_points..")"
+      })
+      startSessionPopup:mount()
+    end)
+  end)
   idb.getInteractableElements()
-  vim.keymap.set('n', 'j', scrollDown, {noremap=true})
-  vim.keymap.set('n', 'k', scrollUp, {noremap=true})
-  vim.keymap.set('n', 'f', require('telescope').extensions["nvim-idb"].get_elements, {noremap=true})
-  vim.keymap.set('n', 'r', idb.restartCurrentApp, {noremap=true})
-  vim.keymap.set('n', 't', idb.tapOnPoint, {noremap = true})
-  vim.keymap.set('n', '.', idb.repeatLastAction, {noremap = true})
-  vim.keymap.set('n', 'H', swipeRight, {noremap = true})
+  for _, mappingAndCallback in pairs(mappings) do
+    local mapping = mappingAndCallback[1]
+    local callback = mappingAndCallback[2]
+    if callback then
+      vim.keymap.set('n', mapping, callback, { noremap=true })
+    end
+  end
+  vim.keymap.set('n', 'f', require('telescope').extensions["nvim-idb"].get_elements, { noremap=true })
   vim.keymap.set('n', '<esc>', function()
     disableKeyMappings()
-    popup:unmount()
-  end, {noremap=true})
+    startSessionPopup:unmount()
+  end, { noremap=true })
 end
 
--- debounce scroll calls
--- make utils.run_shell_command async
-  -- call the getInteractableElements when IDBSessionStart is called so when f is pressed there is some data (and then refresh)
--- ~`a` and `i` calls enter insert mode (cancel mappings in normal mode too?)~ done!
 -- gg and G to top and bottom
--- press period to repeat last command (scroll, button press, etc)!
--- u to swipe back
 -- bigger motion events (e.g 10j)
 -- record and play macros?!
 

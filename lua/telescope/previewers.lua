@@ -9,7 +9,6 @@ local workflow = defaulter(function(opts)
       return entry.value
     end,
     define_preview = function(self, entry)
-      print(entry)
       local bufnr = self.state.bufnr
     end,
   }
