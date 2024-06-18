@@ -38,7 +38,9 @@ local get_tappable_items = function(opts)
     }
   end
   local currentPicker
-  local refreshTableWithResults = function (data)
+  local refreshTableWithResults = function (data, options)
+    options = options or {}
+    vim.schedule(function()
       currentPicker:refresh(finders.new_table({
           results = data,
           entry_maker = function(entry)
@@ -49,7 +51,8 @@ local get_tappable_items = function(opts)
                 ordinal = entry.AXLabel
               }
           end
-    }))
+      }), options)
+    end)
   end
   local cachedItems = idb.getInteractableElements(refreshTableWithResults)
   pickers.new(opts or {}, {
@@ -72,12 +75,16 @@ local get_tappable_items = function(opts)
         local selection = action_state.get_selected_entry()
         if selection ~= nil then
           idb.tapOnElement(selection.value, function()
-            idb.getInteractableElements(refreshTableWithResults)
+            idb.getInteractableElements(function(data)
+              refreshTableWithResults(data, { reset_prompt = true })
+            end)
           end)
         end
       end)
       map('i', '<c-r>', function()
-        idb.getInteractableElements(refreshTableWithResults)
+        idb.getInteractableElements(function(data)
+          refreshTableWithResults(data, { reset_prompt = true })
+        end)
       end)
       return true
     end
