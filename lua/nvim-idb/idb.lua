@@ -126,6 +126,15 @@ function idb.tapOnElement(element, callback)
           end
         end,
       })
+      input:map("i", "<c-n>", function()
+        local text = vim.api.nvim_buf_get_lines(input.bufnr, 0, -1, false)
+        local value = string.match(text[1], "> (%S.*)")
+        if value ~= element.AXValue then
+          runCommand("idb ui text '"..value.."'")
+        end
+        input:unmount()
+        runCommand("idb ui key 40")
+      end, { noremap = true })
       input:mount()
       input:on(event.BufLeave, function()
         input:unmount()
@@ -272,6 +281,7 @@ function idb.startSession()
       },
       style = "double",
     },
+    relative = "editor",
     position = {
       col = "50%",
       row = "20%"
@@ -312,6 +322,21 @@ function idb.startSession()
   vim.keymap.set('n', '<esc>', function()
     disableKeyMappings()
     startSessionPopup:unmount()
+  end, { noremap=true })
+  local job_id = vim.fn.jobstart({"sim-server", "-h"}, {
+    on_stdout = function(id, data)
+      vim.fn.chansend(id, "touchDown 1188 252\n")
+      print("stdout", vim.inspect(data), id)
+      vim.fn.chansend(id, "touchUp 1188 252\n")
+    end,
+    on_stderr = function(id, data) print("stderr", vim.inspect(data)) end,
+    on_stdin = function(id, data) print("stdin", vim.inspect(data)) end
+  })
+  vim.keymap.set('n', 'a', function()
+    print('press a!', job_id)
+    local sendTouch1 = vim.fn.chansend(job_id, "touchDown 1188 252\n")
+    local sendTouch2 = vim.fn.chansend(job_id, "touchUp 1188 252\n")
+    print(sendTouch1, sendTouch2)
   end, { noremap=true })
 end
 
