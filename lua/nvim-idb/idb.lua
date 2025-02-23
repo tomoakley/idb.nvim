@@ -45,7 +45,7 @@ function Timer:countdown(time, command)
 end
 
 local runCommand = function(command, callback)
-  utils.run_shell_command_async(command, function(data)
+  utils.run_shell_command_async("IDB_COMPANION=localhost:10882 "..command, function(data)
     local lastActionIsInteractable = false
     if command and lastAction ~= command then
       for _, cmd in pairs(interactableCommands) do
@@ -82,7 +82,7 @@ function idb.getInteractableElements(callback)
     end)
     elementsCache = filteredElements
     if callback then
-      callback(filteredElements)
+      callback(filteredElements, elementTable)
     end
   end)
   return elementsCache
@@ -213,12 +213,12 @@ end
 
 local function scrollDown()
   utils.debounce_trailing(function()
-    runCommand('idb ui swipe --duration 0.1 300 800 300 700')
+    runCommand('idb ui swipe --duration 0.1 300 700 300 600')
   end, 500)()
 end
 local function scrollUp()
   utils.debounce_trailing(function()
-    runCommand('idb ui swipe --duration 0.1 300 700 300 800')
+    runCommand('idb ui swipe --duration 0.1 300 600 300 700')
   end, 500)()
 end
 
@@ -230,6 +230,8 @@ local function scrollToElement(element)
   local safeAreas = {59, 34}
 --[[   local doesScreenHaveTabBar =
 -- if the bottom of the screen (screen height - 34) has multiple bottoms along the bottom on the same y axis, can probably assume that the screen has a tab bar
+-- if tappedOnPoint > screenHeight - safeAreas - bottomTabBarHeight, assume that element is off screen
+-- another way to know this - idb ui describe-point x y. if off screen it will give an error
 --]]
 end
 
@@ -264,6 +266,8 @@ local mappings = {
   { "<esc>", nil } -- can't use in loop
 }
 
+local hintMappings = {"a", "b"}
+
 local function disableKeyMappings()
   for _, mappingAndCallback in pairs(mappings) do
     local mapping = mappingAndCallback[1]
@@ -271,8 +275,24 @@ local function disableKeyMappings()
   end
 end
 
+local function isInteractable(elementType)
+  local interactableElementTypes = {"Link", "TextField", "Button"}
+  for _, v in ipairs(interactableElementTypes) do
+    if v == elementType then return true end
+  end
+  return false
+end
+
 function idb.startSession()
+  local height = 50
+  local width = 50
+  local ns_id = vim.api.nvim_create_namespace('idb')
+  vim.api.nvim_set_hl(0, "IDB_Hints", {fg = "red", default = true})
+  vim.api.nvim_set_hl_ns(ns_id)
+  local idbHintsHighlightId = vim.api.nvim_get_hl_id_by_name("IDB_Hints")
+  print('highlight group', idbHintsHighlightId)
   local startSessionPopup = Popup({
+    ns_id = ns_id,
     enter = false,
     focusable = false,
     border = {
@@ -287,10 +307,10 @@ function idb.startSession()
       row = "20%"
     },
     size = {
-      width = 30,
-      height = 7,
+      width = width,
+      height = height,
     },
-    zindex = 10,
+    zindex = 20,
     win_options = {
       winhighlight = "Normal:Normal,FloatBorder:Normal",
     },
@@ -307,10 +327,52 @@ function idb.startSession()
         "W: "..screenDimensions.width..", H: "..screenDimensions.height,
         "Density: "..screenDimensions.density.." ("..screenDimensions.width_points.."x"..screenDimensions.height_points..")"
       })
+      local lines = {}
+      for i = 1, height do
+        lines[i] = ' '
+      end
+
+      vim.api.nvim_buf_set_lines(startSessionPopup.bufnr, -1, -1, false, lines)
+
+      --[[ vim.api.nvim_buf_set_lines(startSessionPopup.bufnr, -1, -1, false, {
+        "Test text etc etc etc"
+      }) ]]
       startSessionPopup:mount()
     end)
   end)
-  idb.getInteractableElements()
+  idb.getInteractableElements(function(interactableElements, allElements)
+    for i,element in pairs(allElements) do
+      vim.schedule(function()
+        local y = math.ceil(element.frame.y/20)
+        local x = math.ceil(element.frame.x/8)
+        if y > 0 then
+    --local lines = vim.api.nvim_buf_get_lines(startSessionPopup.bufnr, 0, -1, false)
+          local startLine = 3 + y
+          local startX = math.ceil((x + math.sqrt(element.frame.width)/2)/3)
+          --print(element.AXLabel, startLine, startX)
+          if startLine < height and x < width then
+            --[[ vim.api.nvim_buf_set_extmark(startSessionPopup.bufnr, ns_id, i+4, 1, {
+              virt_text = {{ element.AXLabel }},
+              --id = element.pid,
+              virt_text_win_col = 1,
+              --end_col = math.ceil(x+element.frame.width/20)
+            }) ]]
+            vim.api.nvim_buf_set_lines(startSessionPopup.bufnr, i+4, i+4, false, {""..element.AXLabel:gsub('\n', '')})
+            local isElementInteractable = isInteractable(element.type)
+            if isElementInteractable then
+              vim.api.nvim_buf_set_extmark(startSessionPopup.bufnr, ns_id, i+4, 0, {virt_text={{"a - "}}, virt_text_pos = "inline", hl_group = "IDB_Hints" })
+
+            end
+          end
+          --[[ if element.AXLabel == "3 connections expiring" then
+            vim.keymap.set('n', 'a', function()
+              idb.tapOnElement(element)
+            end)
+          end ]]
+        end
+      end)
+    end
+  end)
   for _, mappingAndCallback in pairs(mappings) do
     local mapping = mappingAndCallback[1]
     local callback = mappingAndCallback[2]
@@ -323,7 +385,7 @@ function idb.startSession()
     disableKeyMappings()
     startSessionPopup:unmount()
   end, { noremap=true })
-  local job_id = vim.fn.jobstart({"sim-server", "-h"}, {
+  --[[ local job_id = vim.fn.jobstart({"sim-server", "-h"}, {
     on_stdout = function(id, data)
       vim.fn.chansend(id, "touchDown 1188 252\n")
       print("stdout", vim.inspect(data), id)
@@ -331,13 +393,13 @@ function idb.startSession()
     end,
     on_stderr = function(id, data) print("stderr", vim.inspect(data)) end,
     on_stdin = function(id, data) print("stdin", vim.inspect(data)) end
-  })
-  vim.keymap.set('n', 'a', function()
+  }) ]]
+  --[[ vim.keymap.set('n', 'a', function()
     print('press a!', job_id)
     local sendTouch1 = vim.fn.chansend(job_id, "touchDown 1188 252\n")
     local sendTouch2 = vim.fn.chansend(job_id, "touchUp 1188 252\n")
     print(sendTouch1, sendTouch2)
-  end, { noremap=true })
+  end, { noremap=true }) ]]
 end
 
 -- gg and G to top and bottom
